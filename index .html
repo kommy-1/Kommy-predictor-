@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="sw">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>KOMMY PREDICTOR</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;font-family:Arial}
+body{background:#0b0f2a;color:#fff;padding:12px}
+.top{text-align:center;margin:10px 0}
+.logo{font-size:32px;font-weight:900;color:#facc15}
+.combo{background:linear-gradient(135deg,#facc15,#f59e0b);color:#000;padding:16px;border-radius:16px;margin-bottom:15px}
+.combo h2{text-align:center}
+.citem{background:#fff;color:#000;padding:12px;border-radius:12px;margin:10px 0}
+.citem b{font-size:16px}
+.citem .ai2{font-size:13px;margin-top:5px;color:#1e3a8a;font-weight:bold}
+.card{background:#121736;padding:16px;border-radius:18px;margin-bottom:14px;border:1px solid #1e2a5a}
+.time{display:inline-block;background:#facc15;color:#000;font-weight:900;padding:5px 12px;border-radius:20px;font-size:13px}
+.comp{color:#94a3b8;margin:10px 0 5px;font-size:14px}
+.teams{text-align:center;font-size:21px;font-weight:900;margin:12px 0}
+.ai{background:#1e2452;border:1px solid #7c3aed;border-radius:12px;padding:12px;font-size:14px;line-height:1.6;margin:10px 0}
+.btn{display:block;text-align:center;background:#2563eb;color:#fff;padding:14px;border-radius:12px;text-decoration:none;font-weight:900}
+input{width:100%;padding:14px;margin-bottom:10px;border-radius:12px;border:none;background:#1e293b;color:#fff}
+button{width:100%;padding:14px;background:#facc15;color:#000;border:none;border-radius:12px;font-weight:900}
+.tabs{display:flex;gap:8px;margin:12px 0}
+.tab{flex:1;padding:11px;text-align:center;background:#121736;border-radius:12px;font-weight:bold;cursor:pointer;font-size:13px}
+.tab.active{background:#facc15;color:#000}
+.box{max-width:430px;margin:15px auto;background:#121736;padding:20px;border-radius:18px;border:1px solid #facc15}
+</style>
+</head>
+<body>
+
+<div class="top"><div class="logo">⚽ KOMMY</div><div style="color:#94a3b8;font-size:13px">● COMBO NA PREDICTION</div></div>
+
+<div class="combo"><h2>🔥 COMBO 4 YA LEO - NA AI</h2><div id="comboList">Inapakia combo na prediction...</div></div>
+
+<div id="today"></div>
+
+<div class="box">
+<div class="tabs"><div class="tab active" onclick="mode('login',this)">LOGIN</div><div class="tab" onclick="mode('signup',this)">SIGN UP</div></div>
+<div id="signup" style="display:none"><input id="sname" placeholder="Jina lako"><input id="sphone" placeholder="Namba 07..."><input id="spass" type="password" placeholder="Password"><button onclick="signup()">JISAJILI</button></div>
+<div id="login"><input id="lphone" placeholder="Namba"><input id="lpass" type="password" placeholder="Password"><button onclick="login()">INGIA</button></div>
+<p id="msg" style="text-align:center;color:#22c55e;margin-top:8px"></p>
+<a class="btn" style="background:#25D366;margin-top:10px" href="https://wa.me/255677957300">💬 WHATSAPP</a>
+</div>
+
+<script>
+const API_KEY='9760bf919f251099932229da5364871e';
+const FALLBACK=[{home:"Algeria",away:"Togo",comp:"AFCON Qualifiers",time:"20:00",id:0},{home:"Portugal",away:"Denmark",comp:"UEFA Nations League",time:"19:45",id:0},{home:"Norway",away:"Wales",comp:"UEFA Nations League",time:"18:00",id:0},{home:"Man City",away:"Fulham",comp:"Premier League",time:"12:30",id:0}];
+function mode(x,el){document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));el.classList.add('active');login.style.display=x=='login'?'block':'none';signup.style.display=x=='signup'?'block':'none'}
+function msg(t){document.getElementById('msg').innerText=t}
+function signup(){let n=sname.value.trim(),p=sphone.value.trim(),ps=spass.value.trim();if(!n||!p||!ps){msg('Jaza vyote');return}localStorage.setItem('user_'+p,JSON.stringify({n,ps}));msg('Umejisajili '+n)}
+function login(){let p=lphone.value.trim(),ps=lpass.value.trim();let u=JSON.parse(localStorage.getItem('user_'+p)||'null');if(!u||u.ps!=ps){msg('Si sahihi. Gusa SIGN UP.');return}msg('Karibu '+u.n)}
+async function loadReal(){
+  let d=new Date().toISOString().slice(0,10);
+  try{
+    let r=await fetch(`https://v3.football.api-sports.io/fixtures?date=${d}`,{headers:{'x-apisports-key':API_KEY}});
+    let j=await r.json();
+    if(j.response && j.response.length>0){
+      let list=j.response.slice(0,8).map(f=>({home:f.teams.home.name,away:f.teams.away.name,comp:f.league.name,time:f.fixture.date.slice(11,16),id:f.fixture.id}));
+      render(list); getAI(list);
+    } else render(FALLBACK);
+  }catch(e){render(FALLBACK)}
+}
+async function getAI(list){
+  for(let m of list){
+    if(!m.id)continue;
+    try{
+      let r=await fetch(`https://v3.football.api-sports.io/predictions?fixture=${m.id}`,{headers:{'x-apisports-key':API_KEY}});
+      let j=await r.json();
+      if(j.response && j.response[0]){
+        let p=j.response[0].predictions;
+        let prob=j.response[0].probabilities['1X2'];
+        let txt=`🧠 ${p.winner.name} Win ${p.winner.probability}% • 1:${prob.home}% X:${prob.draw}% 2:${prob.away}% • Over ${p.goals.over}%`;
+        let a=document.getElementById('ai-'+m.id); if(a)a.innerHTML=txt;
+        let c=document.getElementById('cai-'+m.id); if(c)c.innerHTML=txt;
+      }
+    }catch(e){}
+  }
+}
+function render(list){
+  comboList.innerHTML=list.slice(0,4).map(c=>`<div class="citem"><b>${c.home} vs ${c.away}</b> - ${c.time}<div class="ai2" id="cai-${c.id||c.home}">AI: Inachambua...</div></div>`).join('');
+  let html='';
+  list.forEach(m=>{
+    html+=`<div class="card"><span class="time">${m.time} EAT</span><div class="comp">🏆 ${m.comp}</div><div class="teams">${m.home} vs ${m.away}</div><div class="ai" id="ai-${m.id||m.home}">🧠 AI: Inachambua...</div><a class="btn" href="https://wa.me/255677957300">🔔 ANGALIA LIVE</a></div>`
+  });
+  today.innerHTML=html;
+}
+loadReal();
+</script>
+</body>
+</html>
